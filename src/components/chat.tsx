@@ -6,6 +6,7 @@ import {
   XMarkIcon,
   PaperAirplaneIcon,
   CameraIcon,
+  SpeakerWaveIcon,
   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 import Turn from "./turn";
@@ -17,6 +18,7 @@ import {
   sendPromptFlowMessage,
   sendVisualMessage,
 } from "@/lib/messaging";
+import { getChatCompletionsWithAzureExtensions } from "@azure/openai/api";
 
 interface ChatAction {
   type: "add" | "clear" | "replace";
@@ -54,6 +56,11 @@ export const Chat = () => {
   const [state, dispatch] = useReducer(chatReducer, { turns: [] });
 
   const searchParams = useSearchParams();
+
+  //for audio
+  const [recording, setRecording] = useState<boolean>(false);
+  const mediaRecorderRef = useRef<MediaRecorder | undefined>(undefined);
+  const audioChunksRef = useRef<Blob[] | undefined>(undefined);
 
   useEffect(() => {
     const params = searchParams.getAll("type");
@@ -244,6 +251,73 @@ export const Chat = () => {
     setShowVideo(false);
   };
 
+  //to set up audio recording
+  useEffect(() => {
+    if (recording && !mediaRecorderRef.current){
+      //initialize media recorder
+    navigator.mediaDevices.getUserMedia({audio: true})
+    .then(stream => {
+      const mediaRecorder = new MediaRecorder(stream);
+      let audioChunks: Blob[] = [];
+
+      //when audio available
+      mediaRecorder.ondataavailable = event => {
+        if (event.data.size >0){
+          audioChunks.push(event.data);
+        }
+      };
+
+      //when recording starts
+      mediaRecorder.onstart = () => {
+        audioChunks = [];
+      };
+
+      //when recording stops
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, {type: audioChunks[0].type});
+
+        //send to backend for processing
+        // getChatCompletionsWithAzureExtensions.post('chat/audio', audioBlob)
+        //   .then(response => {
+        //     setRunId(response.data.runID);
+        //   })
+        //   .catch(err => {
+        //     console.error('Failed to send audio');
+        //     console.error(err);
+        //   });
+        console.log('Sending data for processing');
+      };
+
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = audioChunks;
+
+      mediaRecorder.start();
+      })
+      .catch(error => {
+        console.error('Failed to access microphone');
+        console.error(error);
+      });
+    }
+    
+    else {
+      const mediaRecorder = mediaRecorderRef.current;
+      if (!mediaRecorder) {
+        return;
+      }
+      if (recording) {
+        mediaRecorder.start();
+      }
+      else {
+        mediaRecorder.stop();
+      }
+    }
+  },[recording]);
+
+  function onToggleRecording() {
+    setRecording(previousValue => !previousValue);
+  }
+
+
   return (
     <>
       <div className="fixed bottom-0 right-0 mr-12 mb-12 z-10 flex flex-col items-end ">
@@ -292,6 +366,12 @@ export const Chat = () => {
                 onClick={sendMessage}
               >
                 <PaperAirplaneIcon className="w-6 stroke-zinc-500" />
+              </button>
+               <button
+                className="rounded-md p-2 border-solid border-2 border-zinc-300 hover:cursor-pointer hover:bg-zinc-100"
+                onClick={onToggleRecording}
+              >
+                <SpeakerWaveIcon className="w-6 stroke-zinc-500" />
               </button>
               {showCamera && (
                 <>
