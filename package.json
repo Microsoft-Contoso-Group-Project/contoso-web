@@ -40,6 +40,9 @@
 
     "elevenlabs": "^0.6.0",
 
+
+    "dotenv": "^16.4.5",
+
     "eventsource-parser": "^1.1.1",
 
     "marked": "^9.1.4",
@@ -57,6 +60,10 @@
   },
 
   "devDependencies": {
+
+    "@types/formidable": "^3.4.5",
+
+    "@types/multer": "^1.4.11",
 
     "@types/node": "^20",
 
