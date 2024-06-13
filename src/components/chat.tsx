@@ -18,7 +18,7 @@ import {
   sendPromptFlowMessage,
   sendVisualMessage,
 } from "@/lib/messaging";
-import { getChatCompletionsWithAzureExtensions } from "@azure/openai/api";
+import {sendAudio} from "@/lib/sendAudio";
 
 interface ChatAction {
   type: "add" | "clear" | "replace";
@@ -159,10 +159,10 @@ export const Chat = () => {
     });
   };
 
-  const sendMessage = () => {
+  const sendMessage = (text: string) => {
     const newTurn: ChatTurn = {
       name: "John Doe",
-      message: message,
+      message: text,
       status: "done",
       type: "user",
       avatar: "",
@@ -173,7 +173,7 @@ export const Chat = () => {
 
     if (chatType === ChatType.Grounded) {
       // using "Add Your Data"
-      if (message === "") return;
+      if (text === "") return;
       dispatch({ type: "add", payload: newTurn });
       sendGroundedMessage(newTurn).then((responseTurn) => {
         const t1 = performance.now();
@@ -182,7 +182,7 @@ export const Chat = () => {
       });
     } else if (chatType === ChatType.Visual || chatType === ChatType.Video) {
       // visual prompt flow
-      if (message === "" && !currentImage) return;
+      if (text === "" && !currentImage) return;
       dispatch({ type: "add", payload: newTurn });
 
       sendVisualMessage(newTurn).then((responseTurn) => {
@@ -192,7 +192,7 @@ export const Chat = () => {
       });
     } else {
       // standard prompt flow
-      if (message === "") return;
+      if (text === "") return;
       dispatch({ type: "add", payload: newTurn });
 
       sendPromptFlowMessage(newTurn).then((responseTurn) => {
@@ -277,15 +277,11 @@ export const Chat = () => {
         const audioBlob = new Blob(audioChunks, {type: audioChunks[0].type});
 
         //send to backend for processing
-        // getChatCompletionsWithAzureExtensions.post('chat/audio', audioBlob)
-        //   .then(response => {
-        //     setRunId(response.data.runID);
-        //   })
-        //   .catch(err => {
-        //     console.error('Failed to send audio');
-        //     console.error(err);
-        //   });
-        console.log('Sending data for processing');
+        //sendAudio(audioBlob);
+        sendAudio(audioBlob).then((transcription) => {
+          sendMessage(transcription);
+          console.log('Transcription1:',transcription);
+        });
       };
 
       mediaRecorderRef.current = mediaRecorder;
@@ -357,21 +353,25 @@ export const Chat = () => {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyUp={(e) => {
-                  if (e.code === "Enter") sendMessage();
+                  if (e.code === "Enter") sendMessage(message);
                 }}
                 className="block p-2 grow rounded-md text-zinc-700 shadow-sm ring-2 ring-inset ring-zinc-300 focus:ring-zinc-300 focus:border-zinc-300"
               />
               <button
                 className="rounded-md p-2 border-solid border-2 border-zinc-300 hover:cursor-pointer hover:bg-zinc-100"
-                onClick={sendMessage}
+                onClick={(e) => sendMessage(message)}
               >
                 <PaperAirplaneIcon className="w-6 stroke-zinc-500" />
               </button>
                <button
-                className="rounded-md p-2 border-solid border-2 border-zinc-300 hover:cursor-pointer hover:bg-zinc-100"
+                className= {!recording ? "rounded-md p-2 border-solid border-2 border-zinc-300 hover:cursor-pointer hover:bg-zinc-100"
+                   : "rounded-md p-2 border-solid border-2 border-red-500 bg-red-500 hover:cursor-pointer hover:bg-zinc-100"}
+        //         className="rounded-md p-2 border-solid border-2 border-zinc-300 hover:cursor-pointer ${
+        // recording ? 'border-red-500 bg-red-500' : 'border-zinc-300 hover:bg-zinc-100'
+      //}"
                 onClick={onToggleRecording}
               >
-                <SpeakerWaveIcon className="w-6 stroke-zinc-500" />
+                <SpeakerWaveIcon className={"w-6 stroke-zinc-500"} />
               </button>
               {showCamera && (
                 <>
