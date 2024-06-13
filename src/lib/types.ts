@@ -5,6 +5,10 @@ export interface ChatTurn {
   message: string;
   status: "waiting" | "done";
   type: "user" | "assistant";
+
+  //text to speech
+  // audioRef: React.RefObject<HTMLAudioElement>;
+  // savedAudio: boolean;
 };
 
 export enum ChatType {

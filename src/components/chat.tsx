@@ -20,6 +20,7 @@ import {
 } from "@/lib/messaging";
 import { getChatCompletionsWithAzureExtensions } from "@azure/openai/api";
 
+
 interface ChatAction {
   type: "add" | "clear" | "replace";
   payload?: ChatTurn;
@@ -56,6 +57,9 @@ export const Chat = () => {
   const [state, dispatch] = useReducer(chatReducer, { turns: [] });
 
   const searchParams = useSearchParams();
+
+  //for text to speech
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   //for audio
   const [recording, setRecording] = useState<boolean>(false);
@@ -129,6 +133,8 @@ export const Chat = () => {
     }
   };
 
+
+
   const readFile = (file: File): Promise<string | null> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -158,6 +164,8 @@ export const Chat = () => {
       e.target.value = "";
     });
   };
+
+
 
   const sendMessage = () => {
     const newTurn: ChatTurn = {
@@ -199,6 +207,23 @@ export const Chat = () => {
         const t1 = performance.now();
         console.log(`sendPromptFlowMessage took ${t1 - t0} milliseconds.`);
         dispatch({ type: "replace", payload: responseTurn });
+
+        console.log("Eleven Labs API Key:", process.env.ELEVENLABS_API_KEY);
+
+        //text-to-voice
+        getElevenLabsResponse(responseTurn.message).then((botVoiceResponse) =>{
+          const reader = new FileReader();
+          reader.readAsDataURL(botVoiceResponse);
+          reader.onload = () => {
+            if (audioRef.current) {
+              // Pass the file to the <audio> element's src attribute.
+              // Will look like: data:audio/mpeg;base64,//uQxAAAC213G6GI0ZA8...
+              audioRef.current.src = reader.result as string;
+              // Immediately play the audio file.
+              audioRef.current.play();
+            }
+          };
+        })
       });
     }
 
@@ -317,6 +342,35 @@ export const Chat = () => {
     setRecording(previousValue => !previousValue);
   }
 
+  const getElevenLabsResponse = async (text: string) => {
+    const response = await fetch("/api/chat/text-to-speech", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: text,
+        voice: "Rachel"
+      })
+    });
+    // Notify the user if the API Key is invalid.
+    if (response.status === 401) {
+      alert("Your ElevenLabs API Key is invalid. Kindly check and try again.");
+    }
+    if (response.status === 404) {
+      console.log("Your ElevenLabs don't work.");
+    }
+    
+    const data = await response.blob();
+    if (data) {
+      console.log("I got a response!!")
+    }
+
+    return data;
+  };
+
+
+
 
   return (
     <>
@@ -336,6 +390,7 @@ export const Chat = () => {
                   <Turn key={i} turn={turn} type={chatType} />
                 ))}
               </div>
+              <audio ref={audioRef} />
             </div>
             {/* image section */}
             {currentImage && (
