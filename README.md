@@ -51,9 +51,3 @@ For the standard prompt flow chat you will see the following:
 ![Prompt Flow Chat Debug](images/promptflow.png "Prompt Flow Chat Debug")
 
 This is useful for debugging purposes and shows you what is being sent to the individual endpoints.
-
-## Things to do
-Couple of things I would like to do with this repo:
-
-1. Change to streaming chat output instead of waiting for the entire response to come back.
-2. Any other ideas? Let me know!
