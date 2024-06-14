@@ -51,3 +51,8 @@ For the standard prompt flow chat you will see the following:
 ![Prompt Flow Chat Debug](images/promptflow.png "Prompt Flow Chat Debug")
 
 This is useful for debugging purposes and shows you what is being sent to the individual endpoints.
+
+## Change Log
+This website was originally pulled from the contoso-web repository from Microsoft Azure Samples. Our team introduced two features to this set up:
+- Audio input for prompt. Users can use their in-device microphone and verbally convey their prompt. This audio recording will be sent to Whisper model for text transcription purposes via Hugging Face's serverless API. The generated text will then be sent to the back-end for inference.
+- Audio output of response. Once the text response is returned from the chat completion model in the back-end, the text will be sent to a text-to-speech model on 11Labs via the 11Labs API, which will read the text out into an audio file. The audio file is sent back to the chat interface and played automatically for the user.
